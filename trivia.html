@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IVOS Fan Page — Trivia & Flashcards</title>
+
+  <style>
+    :root{
+      --maroon:#800000;
+      --gold:#FFD700;
+      --white:#ffffff;
+      --black:#000000;
+      --gray:#d3d3d3;
+      --bg-dark:#0f0f0f;
+    }
+
+    /* Reset / base */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(180deg,var(--bg-dark),#080808);
+      color:var(--white);
+      -webkit-font-smoothing:antialiased;
+      line-height:1.45;
+      -webkit-tap-highlight-color: transparent;
+    }
+    a{color:var(--gold);text-decoration:none}
+    .container{width:92%;max-width:1200px;margin:0 auto}
+
+    /* Header */
+    .site-header{
+      background:var(--maroon);
+      border-bottom:3px solid var(--gold);
+      position:sticky;top:0;z-index:40;
+      backdrop-filter: blur(4px);
+    }
+    .header-row{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0}
+    .logo{height:50px;border:2px solid var(--gold);border-radius:8px;padding:4px;background:var(--black)}
+    .main-nav .nav-list{list-style:none;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+    .nav-link{color:var(--white);padding:.4rem .9rem;border-radius:24px;font-weight:600}
+    .nav-link.active{background:var(--gold);color:var(--black)}
+    .nav-link.cta{background:var(--black);border:2px solid var(--gold)}
+
+    /* Hero banner */
+    .hero{
+      background: linear-gradient(160deg,var(--maroon) 0%, #2b0000 80%);
+      text-align:center;padding:56px 16px;
+      position:relative;overflow:hidden;margin-bottom:18px;
+    }
+    .hero-title{color:var(--gold);font-size:clamp(1.6rem,3.2vw,2.4rem);margin-bottom:.6rem;font-weight:700;letter-spacing:.6px}
+    .hero-sub{color:var(--gray);max-width:920px;margin:0 auto;font-size:1rem}
+
+    main{padding:10px 0 64px}
+
+    /* Section title */
+    .section-title{
+      color:var(--gold);
+      font-size:1.25rem;
+      margin:18px 0;
+      text-align:left;
+    }
+
+    /* FLASHCARDS GRID */
+    .flashcards {
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:18px;
+      align-items:stretch;
+      margin: 0 auto;
+    }
+
+    /* Responsive columns */
+    @media (max-width:1100px){ .flashcards{ grid-template-columns: repeat(3,1fr);} }
+    @media (max-width:820px){ .flashcards{ grid-template-columns: repeat(2,1fr);} }
+    @media (max-width:520px){ .flashcards{ grid-template-columns: repeat(1,1fr);} }
+
+    /* Card container for flip */
+    .fc {
+      perspective:1200px;
+      width:100%;
+      min-height:220px;
+    }
+
+    /* hidden checkbox */
+    .fc input{display:none}
+
+    /* the label acts as the flippable card */
+    .card {
+      display:block;
+      position:relative;
+      width:100%;
+      min-height:220px;
+      border-radius:12px;
+      cursor:pointer;
+      transform-style:preserve-3d;
+      transition: transform .58s cubic-bezier(.2,.8,.2,1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* flip when input checked */
+    .fc input:checked + .card { transform: rotateY(180deg); }
+
+    /* also allow hover flip on pointer devices */
+    @media (hover:hover) {
+      .card:hover { transform: translateY(-6px) rotateY(0deg); } /* small lift on hover */
+      .card:hover .card-front { transform: translateZ(0); }
+      .fc:hover input:not(:checked) + .card { transform: rotateY(180deg); } /* hover flips */
+      .fc input:checked + .card { transform: rotateY(0deg); } /* keeps readable when tapped */
+    }
+
+    .card-face {
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:18px;border-radius:12px;
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;
+      color:var(--white);
+      text-align:center;
+    }
+
+    .card-front{
+      background: linear-gradient(180deg, rgba(128,0,0,0.9), rgba(0,0,0,0.85));
+      border:2px solid rgba(255,215,0,0.08);
+    }
+    .card-back{
+      background: linear-gradient(180deg,#121212,#0b0b0b);
+      transform: rotateY(180deg);
+      border:2px solid rgba(128,0,0,0.08);
+    }
+
+    /* text styles (centered per your A choice) */
+    .qnum{font-weight:700;color:var(--gold);margin-bottom:8px;letter-spacing:0.6px}
+    .qtext{font-size:1rem;color:#f3e7b0;text-align:center;line-height:1.28}
+    .ans{font-size:1rem;color:var(--gold);text-align:center;padding:0 6px;font-weight:700}
+
+    /* flip hint top-left */
+    .flip-hint{
+      position:absolute;left:10px;top:10px;color:var(--gold);font-size:.78rem;
+      background:rgba(0,0,0,0.28);padding:.25rem .45rem;border-radius:8px;z-index:6;
+    }
+
+    /* small animation/entrance */
+    .fc{opacity:0;transform:translateY(16px);animation:fadeUp .55s ease forwards}
+    .fc:nth-child(1){animation-delay:.05s}
+    .fc:nth-child(2){animation-delay:.09s}
+    .fc:nth-child(3){animation-delay:.13s}
+    .fc:nth-child(4){animation-delay:.17s}
+    .fc:nth-child(5){animation-delay:.21s}
+    .fc:nth-child(6){animation-delay:.25s}
+    .fc:nth-child(7){animation-delay:.29s}
+    .fc:nth-child(8){animation-delay:.33s}
+    .fc:nth-child(9){animation-delay:.37s}
+    .fc:nth-child(10){animation-delay:.41s}
+    .fc:nth-child(11){animation-delay:.45s}
+    .fc:nth-child(12){animation-delay:.49s}
+    .fc:nth-child(13){animation-delay:.53s}
+    .fc:nth-child(14){animation-delay:.57s}
+    .fc:nth-child(15){animation-delay:.61s}
+    .fc:nth-child(16){animation-delay:.65s}
+    .fc:nth-child(17){animation-delay:.69s}
+    .fc:nth-child(18){animation-delay:.73s}
+    .fc:nth-child(19){animation-delay:.77s}
+    .fc:nth-child(20){animation-delay:.81s}
+    .fc:nth-child(21){animation-delay:.85s}
+    .fc:nth-child(22){animation-delay:.89s}
+    .fc:nth-child(23){animation-delay:.93s}
+    .fc:nth-child(24){animation-delay:.97s}
+    .fc:nth-child(25){animation-delay:1.01s}
+    .fc:nth-child(26){animation-delay:1.05s}
+    .fc:nth-child(27){animation-delay:1.09s}
+    .fc:nth-child(28){animation-delay:1.13s}
+    .fc:nth-child(29){animation-delay:1.17s}
+    .fc:nth-child(30){animation-delay:1.21s}
+    .fc:nth-child(31){animation-delay:1.25s}
+    .fc:nth-child(32){animation-delay:1.29s}
+    .fc:nth-child(33){animation-delay:1.33s}
+    .fc:nth-child(34){animation-delay:1.37s}
+    .fc:nth-child(35){animation-delay:1.41s}
+    .fc:nth-child(36){animation-delay:1.45s}
+    .fc:nth-child(37){animation-delay:1.49s}
+    .fc:nth-child(38){animation-delay:1.53s}
+    .fc:nth-child(39){animation-delay:1.57s}
+    .fc:nth-child(40){animation-delay:1.61s}
+    .fc:nth-child(41){animation-delay:1.65s}
+    .fc:nth-child(42){animation-delay:1.69s}
+    .fc:nth-child(43){animation-delay:1.73s}
+    .fc:nth-child(44){animation-delay:1.77s}
+    .fc:nth-child(45){animation-delay:1.81s}
+    .fc:nth-child(46){animation-delay:1.85s}
+    .fc:nth-child(47){animation-delay:1.89s}
+    .fc:nth-child(48){animation-delay:1.93s}
+    .fc:nth-child(49){animation-delay:1.97s}
+    .fc:nth-child(50){animation-delay:2.01s}
+
+    @keyframes fadeUp{ to{opacity:1;transform:translateY(0)} }
+
+    /* footer */
+    footer{background:var(--black);border-top:3px solid var(--gold);padding:26px 0;margin-top:26px}
+    .footer-inner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .footer-inner .left{color:var(--gold);font-weight:700}
+    .footer-inner .right{color:var(--gray)}
+
+    /* accessibility focus */
+    .fc input:focus + .card, .card:focus{outline:3px solid rgba(255,215,0,0.08);outline-offset:3px}
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+    <header class="site-header">
+    <div class="container header-row">
+      <div class="logo-container">
+        <img src="images/ivos-logo.png" alt="IVOS Logo" class="logo" />
+      </div>
+      <nav class="main-nav">
+        <ul class="nav-list">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="discography.html" class="nav-link">Discography</a></li>
+          <li><a href="members.html" class="nav-link">Members</a></li>
+          <li><a href="gallery.html" class="nav-link">Gallery</a></li>
+          <li><a href="news.html" class="nav-link">News</a></li>
+          <li><a href="trivia.html" class="nav-link active">Trivia</a></li>
+          <li><a href="about.html" class="nav-link">About</a></li>
+          <li><a href="tickets.html" class="nav-link cta">Tickets</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" role="region" aria-label="Trivia hero">
+    <div class="container">
+      <h1 class="hero-title">IV of Spades — Trivia & Flashcards</h1>
+      <p class="hero-sub">Tap a card to flip the trivia questions and see if you got the answer right!</p>
+    </div>
+  </section>
+
+  <main class="container">
+    <h2 class="section-title">Flashcards — 50 Questions</h2>
+
+    <div class="flashcards" role="list">
+
+      <!-- Each card uses: .fc > input[type=checkbox] + label.card(for=id) -->
+      <!-- Q1 -->
+      <div class="fc" role="listitem">
+        <input id="q1" type="checkbox" />
+        <label class="card" for="q1" aria-hidden="false">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q1</div>
+            <div class="qtext">What’s the stage name of the bassist and primary vocalist of IVOS?</div>
+          </div>
+          <div class="card-face card-back">
+            <div class="ans">Zild Benitez</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Q2 -->
+      <div class="fc" role="listitem">
+        <input id="q2" type="checkbox" />
+        <label class="card" for="q2">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q2</div>
+            <div class="qtext">Who’s the lead guitarist and co-vocalist of IVOS?</div>
+          </div>
+          <div class="card-face card-back">
+            <div class="ans">Blaster Silonga</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Q3 -->
+      <div class="fc" role="listitem">
+        <input id="q3" type="checkbox" />
+        <label class="card" for="q3">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q3</div>
+            <div class="qtext">Who’s IVOS’ drummer and percussionist?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Badjao de Castro</div></div>
+        </label>
+      </div>
+
+      <!-- Q4 -->
+      <div class="fc" role="listitem">
+        <input id="q4" type="checkbox" />
+        <label class="card" for="q4">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q4</div>
+            <div class="qtext">Who returned as lead vocalist/guitarist in 2025?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Unique Salonga</div></div>
+        </label>
+      </div>
+
+      <!-- Q5 -->
+      <div class="fc" role="listitem">
+        <input id="q5" type="checkbox" />
+        <label class="card" for="q5">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q5</div>
+            <div class="qtext">Who took over most lead vocals when Unique left in 2018?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Zild Benitez</div></div>
+        </label>
+      </div>
+
+      <!-- Q6 -->
+      <div class="fc" role="listitem">
+        <input id="q6" type="checkbox" />
+        <label class="card" for="q6">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q6</div>
+            <div class="qtext">Who’s the youngest member of the band?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Unique Salonga</div></div>
+        </label>
+      </div>
+
+      <!-- Q7 -->
+      <div class="fc" role="listitem">
+        <input id="q7" type="checkbox" />
+        <label class="card" for="q7">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q7</div>
+            <div class="qtext">What year was IV of Spades formed?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">2014</div></div>
+        </label>
+      </div>
+
+      <!-- Q8 -->
+      <div class="fc" role="listitem">
+        <input id="q8" type="checkbox" />
+        <label class="card" for="q8">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q8</div>
+            <div class="qtext">What is their debut album called?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">ClapClapClap!</div></div>
+        </label>
+      </div>
+
+      <!-- Q9 -->
+      <div class="fc" role="listitem">
+        <input id="q9" type="checkbox" />
+        <label class="card" for="q9">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q9</div>
+            <div class="qtext">Which song reached 100M+ views on YouTube?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Mundo</div></div>
+        </label>
+      </div>
+
+      <!-- Q10 -->
+      <div class="fc" role="listitem">
+        <input id="q10" type="checkbox" />
+        <label class="card" for="q10">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q10</div>
+            <div class="qtext">Which awards show named IVOS “New Artist of the Year” in 2018?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">MYX</div></div>
+        </label>
+      </div>
+
+      <!-- Q11 -->
+      <div class="fc" role="listitem">
+        <input id="q11" type="checkbox" />
+        <label class="card" for="q11">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q11</div>
+            <div class="qtext">What year did IVOS go on hiatus?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">2020</div></div>
+        </label>
+      </div>
+
+      <!-- Q12 -->
+      <div class="fc" role="listitem">
+        <input id="q12" type="checkbox" />
+        <label class="card" for="q12">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q12</div>
+            <div class="qtext">Which album contains “Captivated” & “Come Inside of My Heart”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">ClapClapClap!</div></div>
+        </label>
+      </div>
+
+      <!-- Q13 -->
+      <div class="fc" role="listitem">
+        <input id="q13" type="checkbox" />
+        <label class="card" for="q13">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q13</div>
+            <div class="qtext">Which 2025 single marked IVOS’ comeback?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Aura</div></div>
+        </label>
+      </div>
+
+      <!-- Q14 -->
+      <div class="fc" role="listitem">
+        <input id="q14" type="checkbox" />
+        <label class="card" for="q14">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q14</div>
+            <div class="qtext">Who did they collaborate with in “Nagbabalik”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Rico Blanco</div></div>
+        </label>
+      </div>
+
+      <!-- Q15 -->
+      <div class="fc" role="listitem">
+        <input id="q15" type="checkbox" />
+        <label class="card" for="q15">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q15</div>
+            <div class="qtext">How do you correctly pronounce “IV of Spades”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Four of Spades</div></div>
+        </label>
+      </div>
+
+      <!-- Q16 -->
+      <div class="fc" role="listitem">
+        <input id="q16" type="checkbox" />
+        <label class="card" for="q16">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q16</div>
+            <div class="qtext">Which album was released when they were a trio?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">ClapClapClap!</div></div>
+        </label>
+      </div>
+
+      <!-- Q17 -->
+      <div class="fc" role="listitem">
+        <input id="q17" type="checkbox" />
+        <label class="card" for="q17">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q17</div>
+            <div class="qtext">What is their most recent album?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Andalucia</div></div>
+        </label>
+      </div>
+
+      <!-- Q18 -->
+      <div class="fc" role="listitem">
+        <input id="q18" type="checkbox" />
+        <label class="card" for="q18">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q18</div>
+            <div class="qtext">What was their first official single (2016)?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Ilaw sa Daan</div></div>
+        </label>
+      </div>
+
+      <!-- Q19 -->
+      <div class="fc" role="listitem">
+        <input id="q19" type="checkbox" />
+        <label class="card" for="q19">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q19</div>
+            <div class="qtext">Which apartment inspired an album title?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Andalucia</div></div>
+        </label>
+      </div>
+
+      <!-- Q20 -->
+      <div class="fc" role="listitem">
+        <input id="q20" type="checkbox" />
+        <label class="card" for="q20">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q20</div>
+            <div class="qtext">IVOS’ aesthetic is inspired by which decade?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">1970s</div></div>
+        </label>
+      </div>
+
+      <!-- Q21 -->
+      <div class="fc" role="listitem">
+        <input id="q21" type="checkbox" />
+        <label class="card" for="q21">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q21</div>
+            <div class="qtext">Their genre is a mix of rock and…?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Funk</div></div>
+        </label>
+      </div>
+
+      <!-- Q22 -->
+      <div class="fc" role="listitem">
+        <input id="q22" type="checkbox" />
+        <label class="card" for="q22">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q22</div>
+            <div class="qtext">Which card suit symbolizes their logo?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Spade</div></div>
+        </label>
+      </div>
+
+      <!-- Q23 -->
+      <div class="fc" role="listitem">
+        <input id="q23" type="checkbox" />
+        <label class="card" for="q23">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q23</div>
+            <div class="qtext">What instrument does Zild play while singing?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Bass</div></div>
+        </label>
+      </div>
+
+      <!-- Q24 -->
+      <div class="fc" role="listitem">
+        <input id="q24" type="checkbox" />
+        <label class="card" for="q24">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q24</div>
+            <div class="qtext">Complete the lyric: “Limutin na ang mundo, ____ _________ ____”</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Nang magkasama tayo</div></div>
+        </label>
+      </div>
+
+      <!-- Q25 -->
+      <div class="fc" role="listitem">
+        <input id="q25" type="checkbox" />
+        <label class="card" for="q25">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q25</div>
+            <div class="qtext">What genre of music is IVOS?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Alternative / Indie</div></div>
+        </label>
+      </div>
+
+      <!-- Q26 -->
+      <div class="fc" role="listitem">
+        <input id="q26" type="checkbox" />
+        <label class="card" for="q26">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q26</div>
+            <div class="qtext">Complete the lyric: “Pag-ibig mo, tila _________?”</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Naglalaho</div></div>
+        </label>
+      </div>
+
+      <!-- Q27 -->
+      <div class="fc" role="listitem">
+        <input id="q27" type="checkbox" />
+        <label class="card" for="q27">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q27</div>
+            <div class="qtext">How many albums does IVOS have?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">2</div></div>
+        </label>
+      </div>
+
+      <!-- Q28 -->
+      <div class="fc" role="listitem">
+        <input id="q28" type="checkbox" />
+        <label class="card" for="q28">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q28</div>
+            <div class="qtext">What’s their most popular album?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">ClapClapClap!</div></div>
+        </label>
+      </div>
+
+      <!-- Q29 -->
+      <div class="fc" role="listitem">
+        <input id="q29" type="checkbox" />
+        <label class="card" for="q29">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q29</div>
+            <div class="qtext">How many tracks are in “ClapClapClap!”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">15</div></div>
+        </label>
+      </div>
+
+      <!-- Q30 -->
+      <div class="fc" role="listitem">
+        <input id="q30" type="checkbox" />
+        <label class="card" for="q30">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q30</div>
+            <div class="qtext">How many tracks are in “Andalucia”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">12</div></div>
+        </label>
+      </div>
+
+      <!-- Q31 -->
+      <div class="fc" role="listitem">
+        <input id="q31" type="checkbox" />
+        <label class="card" for="q31">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q31</div>
+            <div class="qtext">Zild’s debut solo album (2020)?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Homework Machine</div></div>
+        </label>
+      </div>
+
+      <!-- Q32 -->
+      <div class="fc" role="listitem">
+        <input id="q32" type="checkbox" />
+        <label class="card" for="q32">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q32</div>
+            <div class="qtext">Blaster’s debut solo album (2022)?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">My Kosmik Island Disk</div></div>
+        </label>
+      </div>
+
+      <!-- Q33 -->
+      <div class="fc" role="listitem">
+        <input id="q33" type="checkbox" />
+        <label class="card" for="q33">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q33</div>
+            <div class="qtext">Who is known for his strong falsetto in “Mundo”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Unique Salonga</div></div>
+        </label>
+      </div>
+
+      <!-- Q34 -->
+      <div class="fc" role="listitem">
+        <input id="q34" type="checkbox" />
+        <label class="card" for="q34">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q34</div>
+            <div class="qtext">Who writes most of their lyrics?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Zild Benitez</div></div>
+        </label>
+      </div>
+
+      <!-- Q35 -->
+      <div class="fc" role="listitem">
+        <input id="q35" type="checkbox" />
+        <label class="card" for="q35">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q35</div>
+            <div class="qtext">Who is the oldest member of IVOS?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Badjao de Castro</div></div>
+        </label>
+      </div>
+
+      <!-- Q36 -->
+      <div class="fc" role="listitem">
+        <input id="q36" type="checkbox" />
+        <label class="card" for="q36">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q36</div>
+            <div class="qtext">Which member is a perfectionist in production?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Zild Benitez</div></div>
+        </label>
+      </div>
+
+      <!-- Q37 -->
+      <div class="fc" role="listitem">
+        <input id="q37" type="checkbox" />
+        <label class="card" for="q37">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q37</div>
+            <div class="qtext">Which song did Blaster & Badjao write during heartbreak?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Come Inside of My Heart</div></div>
+        </label>
+      </div>
+
+      <!-- Q38 -->
+      <div class="fc" role="listitem">
+        <input id="q38" type="checkbox" />
+        <label class="card" for="q38">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q38</div>
+            <div class="qtext">Lyrics: “Napaparami na ang nakaw na tingin…”</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Hey Barbara</div></div>
+        </label>
+      </div>
+
+      <!-- Q39 -->
+      <div class="fc" role="listitem">
+        <input id="q39" type="checkbox" />
+        <label class="card" for="q39">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q39</div>
+            <div class="qtext">Most streamed IVOS song on Spotify?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Come Inside of My Heart</div></div>
+        </label>
+      </div>
+
+      <!-- Q40 -->
+      <div class="fc" role="listitem">
+        <input id="q40" type="checkbox" />
+        <label class="card" for="q40">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q40</div>
+            <div class="qtext">Who did they collaborate with on “Namamasko Po”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Shanti Dope</div></div>
+        </label>
+      </div>
+
+      <!-- Q41 -->
+      <div class="fc" role="listitem">
+        <input id="q41" type="checkbox" />
+        <label class="card" for="q41">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q41</div>
+            <div class="qtext">First track on “Andalucia”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Tara</div></div>
+        </label>
+      </div>
+
+      <!-- Q42 -->
+      <div class="fc" role="listitem">
+        <input id="q42" type="checkbox" />
+        <label class="card" for="q42">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q42</div>
+            <div class="qtext">Which track is 5:28 long?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Dulo ng Hangganan</div></div>
+        </label>
+      </div>
+
+      <!-- Q43 -->
+      <div class="fc" role="listitem">
+        <input id="q43" type="checkbox" />
+        <label class="card" for="q43">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q43</div>
+            <div class="qtext">Shortest track (15 seconds)?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">ClapClapClap!</div></div>
+        </label>
+      </div>
+
+      <!-- Q44 -->
+      <div class="fc" role="listitem">
+        <input id="q44" type="checkbox" />
+        <label class="card" for="q44">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q44</div>
+            <div class="qtext">Shortest full song (1:20)?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">The Novel of My Mind</div></div>
+        </label>
+      </div>
+
+      <!-- Q45 -->
+      <div class="fc" role="listitem">
+        <input id="q45" type="checkbox" />
+        <label class="card" for="q45">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q45</div>
+            <div class="qtext">Which song was in “Huwag Ka Lang Mawawala”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Come Inside of My Heart</div></div>
+        </label>
+      </div>
+
+      <!-- Q46 -->
+      <div class="fc" role="listitem">
+        <input id="q46" type="checkbox" />
+        <label class="card" for="q46">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q46</div>
+            <div class="qtext">“In My Prison” was first single after who left?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Unique Salonga</div></div>
+        </label>
+      </div>
+
+      <!-- Q47 -->
+      <div class="fc" role="listitem">
+        <input id="q47" type="checkbox" />
+        <label class="card" for="q47">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q47</div>
+            <div class="qtext">Next lyric in “Bawat Kaluluwa”?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Pilit kong balikan ang nakaraan</div></div>
+        </label>
+      </div>
+
+      <!-- Q48 -->
+      <div class="fc" role="listitem">
+        <input id="q48" type="checkbox" />
+        <label class="card" for="q48">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q48</div>
+            <div class="qtext">Disco-influenced song with a name in the title?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Hey Barbara</div></div>
+        </label>
+      </div>
+
+      <!-- Q49 -->
+      <div class="fc" role="listitem">
+        <input id="q49" type="checkbox" />
+        <label class="card" for="q49">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q49</div>
+            <div class="qtext">Next lyric: “Pagmasdan ang larawan _________”</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Ng hitsurang nagmamalakas</div></div>
+        </label>
+      </div>
+
+      <!-- Q50 -->
+      <div class="fc" role="listitem">
+        <input id="q50" type="checkbox" />
+        <label class="card" for="q50">
+          <div class="card-face card-front">
+            <div class="flip-hint">tap / hover</div>
+            <div class="qnum">Q50</div>
+            <div class="qtext">Which iconic IVOS song has repeating opening lyrics?</div>
+          </div>
+          <div class="card-face card-back"><div class="ans">Bata, Dahan-Dahan</div></div>
+        </label>
+      </div>
+
+    </div> <!-- .flashcards -->
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <p class="footer-brand">
+          <span class="logo-small">♠</span> IVOS Fan Page — Fan-made
+        </p>
+        <p class="small">Made with ♥ • Maroon & Gold theme • Not official</p>
+      </div>
+
+      <div class="footer-right">
+  <p><strong>Fan Mail</strong></p>
+  <p class="footer-email">
+    💌 Send us your suggestions and fan messages at:
+    <br>
+    <a href="mailto:ivosfanmail@gmail.com" class="email-link">ivosfanmail@gmail.com</a>
+  </p>
+</div>
+
+    <div class="footer-bottom">
+      <p>© 2025 IVOS Fan — All rights reserved</p>
+    </div>
+  </footer>
+</body>
+</html>
